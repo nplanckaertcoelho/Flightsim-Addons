@@ -1,0 +1,1876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlightSim Addon Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f0ff',
+                            100: '#e5e5ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81'
+                        },
+                        gray: {
+                            25: '#fcfcfd',
+                            50: '#f9fafb',
+                            100: '#f3f4f6',
+                            150: '#ebeef2',
+                            800: '#1f2937',
+                            850: '#1a202c',
+                            900: '#111827',
+                            950: '#0a0e1a'
+                        }
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    animation: {
+                        'fadeIn': 'fadeIn 0.6s ease-out',
+                        'slideUp': 'slideUp 0.4s ease-out',
+                        'scaleIn': 'scaleIn 0.3s ease-out',
+                    },
+                    boxShadow: {
+                        'soft': '0 2px 15px 0 rgba(0, 0, 0, 0.08)',
+                        'soft-lg': '0 10px 35px 0 rgba(0, 0, 0, 0.1)',
+                        'soft-xl': '0 20px 45px 0 rgba(0, 0, 0, 0.12)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .addon-card {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(20px);
+        }
+        .addon-card:hover {
+            transform: translateY(-6px) scale(1.02);
+            box-shadow: 0 25px 50px -12px rgba(99, 102, 241, 0.15);
+        }
+        .dark .addon-card:hover {
+            box-shadow: 0 25px 50px -12px rgba(99, 102, 241, 0.25);
+        }
+        .version-dropdown {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        .glass-effect {
+            backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.9);
+        }
+        .dark .glass-effect {
+            background: rgba(17, 24, 39, 0.9);
+        }
+        .gradient-border {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            padding: 1px;
+            border-radius: 12px;
+        }
+        .gradient-border-content {
+            background: white;
+            border-radius: 11px;
+        }
+        .dark .gradient-border-content {
+            background: #1f2937;
+        }
+        .version-item {
+            transition: all 0.3s ease;
+        }
+        .version-item.removing {
+            opacity: 0;
+            transform: translateX(-20px);
+        }
+        .changelog-collapsed {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        .changelog-expanded {
+            max-height: 200px;
+            transition: max-height 0.3s ease-in;
+        }
+        .description-truncated {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .scrollable-content {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+        }
+        .scrollable-content::-webkit-scrollbar {
+            width: 6px;
+        }
+        .scrollable-content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .scrollable-content::-webkit-scrollbar-thumb {
+            background-color: rgba(156, 163, 175, 0.5);
+            border-radius: 3px;
+        }
+        .scrollable-content::-webkit-scrollbar-thumb:hover {
+            background-color: rgba(156, 163, 175, 0.8);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-25 via-gray-50 to-gray-100 dark:from-gray-950 dark:via-gray-900 dark:to-gray-850 text-gray-900 dark:text-gray-100 font-sans transition-all duration-500 min-h-screen">
+    
+    <!-- Login Modal -->
+    <div id="loginModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="glass-effect rounded-2xl shadow-soft-xl max-w-md w-full mx-4 border border-gray-150 dark:border-gray-800">
+            <div class="p-8">
+                <div class="text-center mb-8">
+                    <div class="gradient-border mx-auto w-16 h-16 mb-4">
+                        <div class="gradient-border-content w-full h-full flex items-center justify-center">
+                            <i class="fas fa-plane text-primary-600 text-2xl"></i>
+                        </div>
+                    </div>
+                    <h2 class="text-2xl font-bold bg-gradient-to-r from-primary-600 to-primary-700 bg-clip-text text-transparent">
+                        Owner Login
+                    </h2>
+                    <p class="text-gray-600 dark:text-gray-400 text-sm mt-2">Sign in to manage flight sim addons</p>
+                </div>
+
+                <form id="loginForm" class="space-y-6">
+                    <div>
+                        <label for="username" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Username
+                        </label>
+                        <input 
+                            type="text" 
+                            id="username" 
+                            name="username"
+                            class="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-800/80 text-base focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all"
+                            placeholder="Enter username"
+                            required
+                        >
+                    </div>
+                    
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Password
+                        </label>
+                        <input 
+                            type="password" 
+                            id="password" 
+                            name="password"
+                            class="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-800/80 text-base focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all"
+                            placeholder="Enter password"
+                            required
+                        >
+                    </div>
+
+                    <div id="loginError" class="hidden bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-3">
+                        <div class="flex items-center">
+                            <i class="fas fa-exclamation-circle text-red-600 dark:text-red-400 mr-2"></i>
+                            <span class="text-red-600 dark:text-red-400 text-sm" id="loginErrorText"></span>
+                        </div>
+                    </div>
+
+                    <button 
+                        type="submit"
+                        class="w-full px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white rounded-xl transition-all duration-300 font-semibold shadow-soft hover:shadow-soft-lg transform hover:-translate-y-0.5"
+                        id="loginBtn"
+                    >
+                        <span id="loginBtnText">Sign In</span>
+                        <i id="loginSpinner" class="fas fa-spinner fa-spin ml-2 hidden"></i>
+                    </button>
+                </form>
+
+                <div class="mt-6 pt-6 border-t border-gray-150 dark:border-gray-800 flex justify-between items-center">
+                    <button onclick="hideLoginModal()" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 text-sm transition-colors">
+                        Cancel
+                    </button>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Addon Modal -->
+    <div id="addonModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="glass-effect rounded-2xl shadow-soft-xl max-w-4xl w-full mx-4 max-h-[95vh] overflow-hidden border border-gray-150 dark:border-gray-800">
+            <div class="p-6 border-b border-gray-150 dark:border-gray-800">
+                <div class="flex items-center justify-between">
+                    <h3 id="modalTitle" class="text-xl font-bold bg-gradient-to-r from-primary-600 to-primary-700 bg-clip-text text-transparent">Add New Addon</h3>
+                    <button id="closeAddonModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6 version-dropdown">
+                <form id="addonForm" class="space-y-6">
+                    <input type="hidden" id="addonId" name="addonId">
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Addon Name *
+                            </label>
+                            <input 
+                                type="text" 
+                                name="name"
+                                id="addonName"
+                                class="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-800/80 text-base focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all"
+                                placeholder="e.g., Boeing 737-800 MAX"
+                                required
+                            >
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Author *
+                            </label>
+                            <input 
+                                type="text" 
+                                name="author"
+                                id="addonAuthor"
+                                class="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-800/80 text-base focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all"
+                                placeholder="e.g., PMDG"
+                                required
+                            >
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Description *
+                        </label>
+                        <textarea 
+                            name="description"
+                            id="addonDescription"
+                            rows="3"
+                            class="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-800/80 text-base focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all resize-none"
+                            placeholder="Detailed description of the addon..."
+                            required
+                        ></textarea>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Simulator *
+                            </label>
+                            <select 
+                                name="simulator"
+                                id="addonSimulator"
+                                class="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-800/80 text-base focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all"
+                                required
+                                onchange="toggleVersionFields(this.value)"
+                            >
+                                <option value="">Select Simulator</option>
+                                <option value="msfs">Microsoft Flight Simulator</option>
+                                <option value="xplane">X-Plane</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Category *
+                            </label>
+                            <select 
+                                name="category"
+                                id="addonCategory"
+                                class="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-800/80 text-base focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all"
+                                required
+                            >
+                                <option value="">Select Category</option>
+                                <option value="planes">Aircraft</option>
+                                <option value="scenery">Scenery</option>
+                                <option value="utils">Utilities</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div id="msfsVersionField" class="hidden">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                MSFS Version
+                            </label>
+                            <select 
+                                name="msfsVersion"
+                                id="addonMsfsVersion"
+                                class="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-800/80 text-base focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all"
+                            >
+                                <option value="">Select Version</option>
+                                <option value="2020">MSFS 2020</option>
+                                <option value="2024">MSFS 2024</option>
+                                <option value="2020,2024">Both MSFS 2020 & 2024</option>
+                            </select>
+                        </div>
+                        
+                        <div id="xplaneVersionField" class="hidden">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                X-Plane Version
+                            </label>
+                            <select 
+                                name="xplaneVersion"
+                                id="addonXplaneVersion"
+                                class="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-800/80 text-base focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all"
+                            >
+                                <option value="">Select Version</option>
+                                <option value="11">X-Plane 11</option>
+                                <option value="12">X-Plane 12</option>
+                                <option value="11,12">Both X-Plane 11 & 12</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Versions Section -->
+                    <div class="border-t border-gray-150 dark:border-gray-800 pt-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h4 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Versions</h4>
+                            <button 
+                                type="button"
+                                onclick="addVersionRow()"
+                                class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm font-medium"
+                            >
+                                <i class="fas fa-plus mr-2"></i>Add Version
+                            </button>
+                        </div>
+                        
+                        <div id="versionsContainer">
+                            <!-- Version rows will be added here -->
+                        </div>
+                    </div>
+
+                    <!-- Optional Details -->
+                    <div class="border-t border-gray-150 dark:border-gray-800 pt-6">
+                        <h4 class="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Optional Details</h4>
+                        
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Thumbnail URL
+                                </label>
+                                <input 
+                                    type="url" 
+                                    name="thumbnail"
+                                    id="addonThumbnail"
+                                    class="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-800/80 text-base focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all"
+                                    placeholder="https://example.com/image.jpg"
+                                >
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Rating (1-5)
+                                </label>
+                                <select 
+                                    name="rating"
+                                    id="addonRating"
+                                    class="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-800/80 text-base focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all"
+                                >
+                                    <option value="">No Rating</option>
+                                    <option value="5">5 Stars</option>
+                                    <option value="4">4 Stars</option>
+                                    <option value="3">3 Stars</option>
+                                    <option value="2">2 Stars</option>
+                                    <option value="1">1 Star</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mt-6">
+                            <label class="flex items-center">
+                                <input 
+                                    type="checkbox" 
+                                    name="featured"
+                                    id="addonFeatured"
+                                    class="w-5 h-5 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                                >
+                                <span class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">Mark as Featured</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="addonError" class="hidden bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-3">
+                        <div class="flex items-center">
+                            <i class="fas fa-exclamation-circle text-red-600 dark:text-red-400 mr-2"></i>
+                            <span class="text-red-600 dark:text-red-400 text-sm" id="addonErrorText"></span>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end space-x-4 pt-6 border-t border-gray-150 dark:border-gray-800">
+                        <button 
+                            type="button"
+                            onclick="hideAddonModal()"
+                            class="px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl transition-all duration-300 font-semibold"
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            type="submit"
+                            class="px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white rounded-xl transition-all duration-300 font-semibold shadow-soft hover:shadow-soft-lg transform hover:-translate-y-0.5"
+                            id="addonBtn"
+                        >
+                            <span id="addonBtnText">Add Addon</span>
+                            <i id="addonSpinner" class="fas fa-spinner fa-spin ml-2 hidden"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="glass-effect rounded-2xl shadow-soft-xl max-w-md w-full mx-4 border border-gray-150 dark:border-gray-800">
+            <div class="p-6">
+                <div class="flex items-center mb-4">
+                    <div class="w-10 h-10 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center mr-4">
+                        <i class="fas fa-trash text-red-600 dark:text-red-400"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Delete Addon</h3>
+                </div>
+                <p class="text-gray-600 dark:text-gray-400 mb-6">Are you sure you want to delete this addon? This action cannot be undone.</p>
+                <div class="flex justify-end space-x-3">
+                    <button onclick="hideDeleteModal()" class="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                        Cancel
+                    </button>
+                    <button id="confirmDeleteBtn" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors">
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="glass-effect border-b border-gray-150 dark:border-gray-800 sticky top-0 z-40 shadow-soft">
+        <div class="max-w-7xl mx-auto px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <div class="flex items-center space-x-4">
+                    <div class="gradient-border">
+                        <div class="gradient-border-content w-12 h-12 flex items-center justify-center">
+                            <i class="fas fa-plane text-primary-600 text-xl"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold bg-gradient-to-r from-primary-600 to-primary-700 bg-clip-text text-transparent">
+                            FlightSim Hub
+                        </h1>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 font-medium">Professional Addon Manager</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-6">
+                    <!-- Search Bar -->
+                    <div class="relative hidden md:block">
+                        <input 
+                            type="text" 
+                            id="searchInput"
+                            placeholder="Search addons..."
+                            class="w-72 pl-12 pr-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-800/80 text-base focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all backdrop-blur-sm shadow-soft"
+                        >
+                        <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-lg"></i>
+                    </div>
+                    
+                    <!-- Stats -->
+                    <div class="hidden lg:flex items-center space-x-6">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-primary-600" id="totalAddons">0</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400 font-medium">Total Addons</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Login Button -->
+                    <button id="loginButton" class="px-4 py-2 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white rounded-xl transition-all duration-300 font-semibold shadow-soft hover:shadow-soft-lg transform hover:-translate-y-0.5 text-sm">
+                        <i class="fas fa-user mr-2"></i>Owner Login
+                    </button>
+                    
+                    <!-- Owner Controls -->
+                    <div id="ownerControls" class="hidden flex items-center space-x-3">
+                        <button id="addAddonButton" class="p-3 text-green-600 hover:text-green-700 transition-all duration-300 rounded-xl hover:bg-green-50 dark:hover:bg-green-900/20 shadow-soft" title="Add New Addon">
+                            <i class="fas fa-plus text-xl"></i>
+                        </button>
+                        <button id="logoutBtn" class="p-3 text-red-600 hover:text-red-700 transition-all duration-300 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 shadow-soft" title="Logout">
+                            <i class="fas fa-sign-out-alt text-xl"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Refresh Button -->
+                    <button id="refreshBtn" class="p-3 text-gray-500 hover:text-primary-600 transition-all duration-300 rounded-xl hover:bg-primary-50 dark:hover:bg-primary-900/20 shadow-soft" title="Refresh Data">
+                        <i class="fas fa-sync-alt text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="max-w-7xl mx-auto px-6 lg:px-8 py-12">
+        <!-- Loading State -->
+        <div id="loadingState" class="text-center py-24">
+            <div class="inline-flex flex-col items-center space-y-6">
+                <div class="relative">
+                    <div class="animate-spin rounded-full h-16 w-16 border-4 border-primary-100 border-t-primary-600"></div>
+                    <div class="absolute inset-0 rounded-full h-16 w-16 border-4 border-transparent border-l-primary-300 animate-spin" style="animation-delay: -0.3s; animation-duration: 1.5s;"></div>
+                </div>
+                <div class="space-y-2">
+                    <span class="text-xl font-semibold text-gray-900 dark:text-gray-100">Loading Flight Simulator Addons</span>
+                    <span class="text-sm text-gray-500 dark:text-gray-400 block">Fetching the latest addon database...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div id="mainContent" class="hidden animate-fadeIn space-y-8">
+            <!-- Simulator Tabs -->
+            <div class="glass-effect rounded-2xl shadow-soft-lg border border-gray-150 dark:border-gray-800 overflow-hidden">
+                <div class="border-b border-gray-150 dark:border-gray-800">
+                    <nav class="flex px-8" id="simTabs">
+                        <button class="sim-tab active py-6 px-4 border-b-2 border-primary-600 text-primary-600 font-semibold transition-all duration-300" data-sim="msfs">
+                            <div class="flex items-center space-x-3">
+                                <i class="fab fa-microsoft text-xl"></i>
+                                <span class="hidden sm:block">Microsoft Flight Simulator</span>
+                                <span class="sm:hidden">MSFS</span>
+                                <span id="msfsCount" class="px-2.5 py-1 bg-primary-600 text-white text-xs rounded-full font-medium">0</span>
+                            </div>
+                        </button>
+                        <button class="sim-tab py-6 px-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 font-semibold transition-all duration-300" data-sim="xplane">
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-fighter-jet text-xl"></i>
+                                <span class="hidden sm:block">X-Plane</span>
+                                <span class="sm:hidden">X-Plane</span>
+                                <span id="xplaneCount" class="px-2.5 py-1 bg-gray-400 text-white text-xs rounded-full font-medium">0</span>
+                            </div>
+                        </button>
+                    </nav>
+                </div>
+
+                <!-- Category Filters -->
+                <div class="p-8">
+                    <div class="flex flex-wrap gap-4">
+                        <button class="category-filter active px-6 py-3 rounded-xl bg-primary-600 text-white font-semibold transition-all duration-300 shadow-soft hover:shadow-soft-lg" data-category="all">
+                            <i class="fas fa-th-large mr-2"></i>All Categories
+                        </button>
+                        <button class="category-filter px-6 py-3 rounded-xl bg-gray-100/80 dark:bg-gray-700/80 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 font-semibold transition-all duration-300 shadow-soft hover:shadow-soft-lg" data-category="planes">
+                            <i class="fas fa-plane mr-2"></i>Aircraft
+                        </button>
+                        <button class="category-filter px-6 py-3 rounded-xl bg-gray-100/80 dark:bg-gray-700/80 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 font-semibold transition-all duration-300 shadow-soft hover:shadow-soft-lg" data-category="scenery">
+                            <i class="fas fa-mountain mr-2"></i>Scenery
+                        </button>
+                        <button class="category-filter px-6 py-3 rounded-xl bg-gray-100/80 dark:bg-gray-700/80 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 font-semibold transition-all duration-300 shadow-soft hover:shadow-soft-lg" data-category="utils">
+                            <i class="fas fa-tools mr-2"></i>Utilities
+                        </button>
+                    </div>
+
+                    <!-- MSFS Version Filter -->
+                    <div id="msfsVersionFilter" class="mt-4 pt-4 border-t border-gray-150 dark:border-gray-800">
+                        <div class="flex items-center space-x-2 mb-3">
+                            <i class="fas fa-filter text-gray-500 text-sm"></i>
+                            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">MSFS Version:</span>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <button class="msfs-version-filter active px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium transition-all duration-300" data-version="all">
+                                All Versions
+                            </button>
+                            <button class="msfs-version-filter px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 text-sm font-medium transition-all duration-300" data-version="2020">
+                                MSFS 2020
+                            </button>
+                            <button class="msfs-version-filter px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 text-sm font-medium transition-all duration-300" data-version="2024">
+                                MSFS 2024
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- X-Plane Version Filter -->
+                    <div id="xplaneVersionFilter" class="mt-4 pt-4 border-t border-gray-150 dark:border-gray-800 hidden">
+                        <div class="flex items-center space-x-2 mb-3">
+                            <i class="fas fa-filter text-gray-500 text-sm"></i>
+                            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">X-Plane Version:</span>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <button class="xplane-version-filter active px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium transition-all duration-300" data-version="all">
+                                All Versions
+                            </button>
+                            <button class="xplane-version-filter px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 text-sm font-medium transition-all duration-300" data-version="11">
+                                X-Plane 11
+                            </button>
+                            <button class="xplane-version-filter px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 text-sm font-medium transition-all duration-300" data-version="12">
+                                X-Plane 12
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Addons Grid -->
+            <div id="addonsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                <!-- Addon cards will be populated here -->
+            </div>
+
+            <!-- No Results Message -->
+            <div id="noResults" class="hidden text-center py-24">
+                <div class="glass-effect rounded-2xl p-12 shadow-soft-lg border border-gray-150 dark:border-gray-800 max-w-md mx-auto">
+                    <div class="w-16 h-16 bg-gradient-to-br from-primary-100 to-primary-200 dark:from-primary-900 dark:to-primary-800 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-search text-primary-600 dark:text-primary-400 text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">No addons found</h3>
+                    <p class="text-gray-500 dark:text-gray-400">Try adjusting your search or filter criteria to find what you're looking for.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dark mode detection
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        });
+
+        // Global variables
+        let addonsData = {};
+        let currentSim = 'msfs';
+        let currentCategory = 'all';
+        let currentMsfsVersion = 'all';
+        let currentXPlaneVersion = 'all';
+        let searchTerm = '';
+        let authToken = localStorage.getItem('authToken');
+        let currentUser = null;
+        let versionCounter = 0;
+        let isEditMode = false;
+        let editingAddonId = null;
+        let addonToDelete = null;
+
+        // API Base URL
+        const API_BASE_URL = window.location.origin;
+
+        // Authentication functions
+        function setAuthToken(token) {
+            authToken = token;
+            localStorage.setItem('authToken', token);
+        }
+
+        function clearAuthToken() {
+            authToken = null;
+            currentUser = null;
+            localStorage.removeItem('authToken');
+        }
+
+        function getAuthHeaders() {
+            return authToken ? { 'Authorization': `Bearer ${authToken}` } : {};
+        }
+
+        async function verifyAuth() {
+            if (!authToken) return false;
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/verify`, {
+                    headers: getAuthHeaders()
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    currentUser = data.user;
+                    return true;
+                }
+            } catch (error) {
+                console.error('Auth verification failed:', error);
+            }
+            
+            clearAuthToken();
+            return false;
+        }
+
+        async function login(username, password) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    setAuthToken(data.token);
+                    currentUser = data.user;
+                    return { success: true };
+                } else {
+                    return { success: false, error: data.error || 'Login failed' };
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                return { success: false, error: 'Network error' };
+            }
+        }
+
+        function logout() {
+            clearAuthToken();
+            hideOwnerControls();
+            showLoginButton();
+        }
+
+        function showLoginModal() {
+            document.getElementById('loginModal').classList.remove('hidden');
+        }
+
+        function hideLoginModal() {
+            document.getElementById('loginModal').classList.add('hidden');
+        }
+
+        function showAddonModal(mode = 'add', addon = null) {
+            isEditMode = mode === 'edit';
+            editingAddonId = addon ? (addon.id || addon._id) : null;
+            
+            const modal = document.getElementById('addonModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const addonBtnText = document.getElementById('addonBtnText');
+            
+            if (isEditMode) {
+                modalTitle.textContent = 'Edit Addon';
+                addonBtnText.textContent = 'Update Addon';
+                populateEditForm(addon);
+            } else {
+                modalTitle.textContent = 'Add New Addon';
+                addonBtnText.textContent = 'Add Addon';
+                resetForm();
+            }
+            
+            modal.classList.remove('hidden');
+            
+            // Add first version row if in add mode and no versions exist
+            if (!isEditMode && document.getElementById('versionsContainer').children.length === 0) {
+                addVersionRow();
+            }
+        }
+
+        function hideAddonModal() {
+            document.getElementById('addonModal').classList.add('hidden');
+            resetForm();
+        }
+
+        function resetForm() {
+            document.getElementById('addonForm').reset();
+            document.getElementById('addonError').classList.add('hidden');
+            document.getElementById('versionsContainer').innerHTML = '';
+            document.getElementById('addonId').value = '';
+            versionCounter = 0;
+            isEditMode = false;
+            editingAddonId = null;
+        }
+
+        function populateEditForm(addon) {
+            // Basic fields
+            document.getElementById('addonId').value = addon.id || addon._id;
+            document.getElementById('addonName').value = addon.name;
+            document.getElementById('addonAuthor').value = addon.author;
+            document.getElementById('addonDescription').value = addon.description;
+            document.getElementById('addonSimulator').value = addon.simulator;
+            document.getElementById('addonCategory').value = addon.category;
+            document.getElementById('addonThumbnail').value = addon.thumbnail || '';
+            document.getElementById('addonRating').value = addon.rating || '';
+            document.getElementById('addonFeatured').checked = addon.featured || false;
+            
+            // Version compatibility
+            if (addon.simulator === 'msfs') {
+                document.getElementById('addonMsfsVersion').value = addon.msfsVersion || '';
+                toggleVersionFields('msfs');
+            } else if (addon.simulator === 'xplane') {
+                document.getElementById('addonXplaneVersion').value = addon.xplaneVersion || '';
+                toggleVersionFields('xplane');
+            }
+            
+            // Clear and populate versions
+            document.getElementById('versionsContainer').innerHTML = '';
+            versionCounter = 0;
+            
+            if (addon.versions && addon.versions.length > 0) {
+                addon.versions.forEach(version => {
+                    addVersionRow(version);
+                });
+            } else {
+                addVersionRow();
+            }
+        }
+
+        function showOwnerControls() {
+            document.getElementById('ownerControls').classList.remove('hidden');
+        }
+
+        function hideOwnerControls() {
+            document.getElementById('ownerControls').classList.add('hidden');
+        }
+
+        function showLoginButton() {
+            document.getElementById('loginButton').classList.remove('hidden');
+        }
+
+        function hideLoginButton() {
+            document.getElementById('loginButton').classList.add('hidden');
+        }
+
+        function showDeleteModal(addonId) {
+            addonToDelete = addonId;
+            document.getElementById('deleteModal').classList.remove('hidden');
+        }
+
+        function hideDeleteModal() {
+            document.getElementById('deleteModal').classList.add('hidden');
+            addonToDelete = null;
+        }
+
+        function toggleVersionFields(simulator) {
+            const msfsField = document.getElementById('msfsVersionField');
+            const xplaneField = document.getElementById('xplaneVersionField');
+            
+            if (simulator === 'msfs') {
+                msfsField.classList.remove('hidden');
+                xplaneField.classList.add('hidden');
+            } else if (simulator === 'xplane') {
+                msfsField.classList.add('hidden');
+                xplaneField.classList.remove('hidden');
+            } else {
+                msfsField.classList.add('hidden');
+                xplaneField.classList.add('hidden');
+            }
+        }
+
+        // Version management functions
+        function addVersionRow(versionData = null) {
+            versionCounter++;
+            const container = document.getElementById('versionsContainer');
+            
+            const versionRow = document.createElement('div');
+            versionRow.className = 'version-item p-6 border border-gray-200 dark:border-gray-600 rounded-xl mb-4 bg-gray-50/50 dark:bg-gray-800/50';
+            versionRow.id = `version-${versionCounter}`;
+            
+            const isLatest = versionData ? versionData.latest : false;
+            
+            versionRow.innerHTML = `
+                <div class="flex items-center justify-between mb-4">
+                    <h5 class="text-md font-semibold text-gray-900 dark:text-gray-100">
+                        Version ${versionCounter}
+                        ${isLatest ? '<span class="ml-2 px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs rounded-full">Latest</span>' : ''}
+                    </h5>
+                    <button 
+                        type="button"
+                        onclick="removeVersionRow('version-${versionCounter}')"
+                        class="text-red-600 hover:text-red-700 transition-colors"
+                        title="Remove Version"
+                    >
+                        <i class="fas fa-trash text-sm"></i>
+                    </button>
+                </div>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Version Number *
+                        </label>
+                        <input 
+                            type="text" 
+                            name="versions[${versionCounter}][version]"
+                            class="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-800/80 text-base focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all"
+                            placeholder="e.g., 1.0.0"
+                            value="${versionData ? versionData.version : ''}"
+                            required
+                        >
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            File Size
+                        </label>
+                        <input 
+                            type="text" 
+                            name="versions[${versionCounter}][size]"
+                            class="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-800/80 text-base focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all"
+                            placeholder="e.g., 2.5 GB"
+                            value="${versionData ? (versionData.size || '') : ''}"
+                        >
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Download URL *
+                    </label>
+                    <input 
+                        type="url" 
+                        name="versions[${versionCounter}][downloadUrl]"
+                        class="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-800/80 text-base focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all"
+                        placeholder="https://example.com/download/addon.zip"
+                        value="${versionData ? versionData.downloadUrl : ''}"
+                        required
+                    >
+                </div>
+
+                <div class="mt-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Changelog
+                    </label>
+                    <textarea 
+                        name="versions[${versionCounter}][changelog]"
+                        rows="2"
+                        class="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-800/80 text-base focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all resize-none"
+                        placeholder="What's new in this version..."
+                    >${versionData ? (versionData.changelog || '') : ''}</textarea>
+                </div>
+
+                <div class="mt-4">
+                    <label class="flex items-center">
+                        <input 
+                            type="checkbox" 
+                            name="versions[${versionCounter}][latest]"
+                            class="w-5 h-5 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                            onchange="handleLatestVersionChange(this)"
+                            ${isLatest ? 'checked' : ''}
+                        >
+                        <span class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">Mark as Latest Version</span>
+                    </label>
+                </div>
+            `;
+            
+            container.appendChild(versionRow);
+        }
+
+        function removeVersionRow(versionId) {
+            const versionRow = document.getElementById(versionId);
+            if (versionRow) {
+                versionRow.classList.add('removing');
+                setTimeout(() => {
+                    versionRow.remove();
+                    updateVersionLabels();
+                }, 300);
+            }
+        }
+
+        function updateVersionLabels() {
+            const versions = document.querySelectorAll('.version-item');
+            versions.forEach((version, index) => {
+                const label = version.querySelector('h5');
+                const isLatest = version.querySelector('input[name*="[latest]"]').checked;
+                if (label) {
+                    label.innerHTML = `Version ${index + 1} ${isLatest ? '<span class="ml-2 px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs rounded-full">Latest</span>' : ''}`;
+                }
+            });
+        }
+
+        function handleLatestVersionChange(checkbox) {
+            if (checkbox.checked) {
+                // Uncheck all other "latest" checkboxes
+                document.querySelectorAll('input[name*="[latest]"]').forEach(cb => {
+                    if (cb !== checkbox && cb.type === 'checkbox') {
+                        cb.checked = false;
+                    }
+                });
+            }
+            updateVersionLabels();
+        }
+
+        // Load addons data
+        async function loadAddonsData() {
+            try {
+                console.log('Loading addons from backend...');
+                const response = await fetch(`${API_BASE_URL}/api/addons`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Loaded data:', data);
+                
+                addonsData = data;
+                
+                document.getElementById('loadingState').classList.add('hidden');
+                document.getElementById('mainContent').classList.remove('hidden');
+                
+                updateStats();
+                renderAddons();
+                
+                console.log('Addons loaded successfully');
+                
+            } catch (error) {
+                console.error('Error loading addons data:', error);
+                showErrorState();
+            }
+        }
+
+        // Add new addon
+        async function addAddon(addonData) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/addons`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeaders()
+                    },
+                    body: JSON.stringify(addonData)
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    return { success: true, addon: data.addon };
+                } else {
+                    return { success: false, error: data.error || 'Failed to add addon' };
+                }
+            } catch (error) {
+                console.error('Add addon error:', error);
+                return { success: false, error: 'Network error' };
+            }
+        }
+
+        // Update addon
+        async function updateAddon(addonId, addonData) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/addons/${addonId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeaders()
+                    },
+                    body: JSON.stringify(addonData)
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    return { success: true, addon: data.addon };
+                } else {
+                    return { success: false, error: data.error || 'Failed to update addon' };
+                }
+            } catch (error) {
+                console.error('Update addon error:', error);
+                return { success: false, error: 'Network error' };
+            }
+        }
+
+        // Delete addon
+        async function deleteAddon(addonId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/addons/${addonId}`, {
+                    method: 'DELETE',
+                    headers: getAuthHeaders()
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    return { success: true };
+                } else {
+                    return { success: false, error: data.error || 'Failed to delete addon' };
+                }
+            } catch (error) {
+                console.error('Delete addon error:', error);
+                return { success: false, error: 'Network error' };
+            }
+        }
+
+        function showErrorState() {
+            document.getElementById('loadingState').innerHTML = `
+                <div class="text-center py-16">
+                    <div class="inline-flex flex-col items-center space-y-4">
+                        <div class="w-16 h-16 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center">
+                            <i class="fas fa-exclamation-triangle text-red-600 dark:text-red-400 text-2xl"></i>
+                        </div>
+                        <span class="text-lg font-medium">Failed to Load Addons</span>
+                        <span class="text-sm text-gray-500 dark:text-gray-400">Please check your connection and try again</span>
+                        <button onclick="location.reload()" class="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors">
+                            Retry
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateStats() {
+            const msfsCount = Object.values(addonsData.msfs || {}).reduce((acc, category) => acc + category.length, 0);
+            const xplaneCount = Object.values(addonsData.xplane || {}).reduce((acc, category) => acc + category.length, 0);
+            const totalCount = msfsCount + xplaneCount;
+
+            document.getElementById('totalAddons').textContent = totalCount;
+            document.getElementById('msfsCount').textContent = msfsCount;
+            document.getElementById('xplaneCount').textContent = xplaneCount;
+        }
+
+        // Initialize app
+        window.addEventListener('DOMContentLoaded', async () => {
+            // Check authentication
+            const isAuthenticated = await verifyAuth();
+            
+            if (isAuthenticated) {
+                hideLoginButton();
+                showOwnerControls();
+            } else {
+                showLoginButton();
+                hideOwnerControls();
+            }
+            
+            // Load addons
+            await loadAddonsData();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            // Login button
+            document.getElementById('loginButton').addEventListener('click', showLoginModal);
+
+            // Login form
+            document.getElementById('loginForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                const loginBtn = document.getElementById('loginBtn');
+                const loginBtnText = document.getElementById('loginBtnText');
+                const loginSpinner = document.getElementById('loginSpinner');
+                const loginError = document.getElementById('loginError');
+                const loginErrorText = document.getElementById('loginErrorText');
+                
+                // Show loading state
+                loginBtn.disabled = true;
+                loginBtnText.textContent = 'Signing In...';
+                loginSpinner.classList.remove('hidden');
+                loginError.classList.add('hidden');
+                
+                const result = await login(username, password);
+                
+                if (result.success) {
+                    hideLoginModal();
+                    hideLoginButton();
+                    showOwnerControls();
+                    await loadAddonsData();
+                } else {
+                    loginErrorText.textContent = result.error;
+                    loginError.classList.remove('hidden');
+                }
+                
+                // Reset button state
+                loginBtn.disabled = false;
+                loginBtnText.textContent = 'Sign In';
+                loginSpinner.classList.add('hidden');
+            });
+
+            // Addon form (add/edit)
+            document.getElementById('addonForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const formData = new FormData(e.target);
+                
+                // Process form data
+                const addonData = {
+                    name: formData.get('name'),
+                    description: formData.get('description'),
+                    author: formData.get('author'),
+                    simulator: formData.get('simulator'),
+                    category: formData.get('category'),
+                    msfsVersion: formData.get('msfsVersion') || '',
+                    xplaneVersion: formData.get('xplaneVersion') || '',
+                    thumbnail: formData.get('thumbnail') || '',
+                    rating: formData.get('rating') ? parseInt(formData.get('rating')) : null,
+                    featured: formData.has('featured'),
+                    versions: []
+                };
+                
+                // Process versions
+                const versionElements = document.querySelectorAll('.version-item');
+                versionElements.forEach((element) => {
+                    const versionData = {
+                        version: element.querySelector(`input[name*="[version]"]`).value,
+                        downloadUrl: element.querySelector(`input[name*="[downloadUrl]"]`).value,
+                        size: element.querySelector(`input[name*="[size]"]`).value || '',
+                        changelog: element.querySelector(`textarea[name*="[changelog]"]`).value || '',
+                        latest: element.querySelector(`input[name*="[latest]"]`).checked
+                    };
+                    addonData.versions.push(versionData);
+                });
+
+                // Validate that at least one version is marked as latest
+                if (!addonData.versions.some(v => v.latest)) {
+                    const addonError = document.getElementById('addonError');
+                    const addonErrorText = document.getElementById('addonErrorText');
+                    addonErrorText.textContent = 'At least one version must be marked as latest';
+                    addonError.classList.remove('hidden');
+                    return;
+                }
+                
+                const addonBtn = document.getElementById('addonBtn');
+                const addonBtnText = document.getElementById('addonBtnText');
+                const addonSpinner = document.getElementById('addonSpinner');
+                const addonError = document.getElementById('addonError');
+                const addonErrorText = document.getElementById('addonErrorText');
+                
+                // Show loading state
+                addonBtn.disabled = true;
+                addonBtnText.textContent = isEditMode ? 'Updating...' : 'Adding...';
+                addonSpinner.classList.remove('hidden');
+                addonError.classList.add('hidden');
+                
+                let result;
+                if (isEditMode) {
+                    result = await updateAddon(editingAddonId, addonData);
+                } else {
+                    result = await addAddon(addonData);
+                }
+                
+                if (result.success) {
+                    hideAddonModal();
+                    await loadAddonsData();
+                    showAlert(isEditMode ? 'Addon updated successfully!' : 'Addon added successfully!');
+                } else {
+                    addonErrorText.textContent = result.error;
+                    addonError.classList.remove('hidden');
+                }
+                
+                // Reset button state
+                addonBtn.disabled = false;
+                addonBtnText.textContent = isEditMode ? 'Update Addon' : 'Add Addon';
+                addonSpinner.classList.add('hidden');
+            });
+
+            // Delete confirmation
+            document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
+                if (!addonToDelete) return;
+                
+                const result = await deleteAddon(addonToDelete);
+                hideDeleteModal();
+                
+                if (result.success) {
+                    await loadAddonsData();
+                    showAlert('Addon deleted successfully!');
+                } else {
+                    showAlert('Failed to delete addon: ' + result.error);
+                }
+            });
+
+            // Modal controls
+            document.getElementById('logoutBtn').addEventListener('click', logout);
+            document.getElementById('addAddonButton').addEventListener('click', () => showAddonModal('add'));
+            document.getElementById('closeAddonModal').addEventListener('click', hideAddonModal);
+
+            // Simulator tabs
+            document.querySelectorAll('.sim-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    currentSim = tab.dataset.sim;
+                    updateActiveTab(tab);
+                    toggleVersionFilters();
+                    renderAddons();
+                });
+            });
+
+            // Category filters
+            document.querySelectorAll('.category-filter').forEach(filter => {
+                filter.addEventListener('click', () => {
+                    currentCategory = filter.dataset.category;
+                    updateActiveFilter(filter);
+                    renderAddons();
+                });
+            });
+
+            // Version filters
+            document.querySelectorAll('.msfs-version-filter').forEach(filter => {
+                filter.addEventListener('click', () => {
+                    currentMsfsVersion = filter.dataset.version;
+                    updateActiveMsfsVersionFilter(filter);
+                    renderAddons();
+                });
+            });
+
+            document.querySelectorAll('.xplane-version-filter').forEach(filter => {
+                filter.addEventListener('click', () => {
+                    currentXPlaneVersion = filter.dataset.version;
+                    updateActiveXPlaneVersionFilter(filter);
+                    renderAddons();
+                });
+            });
+
+            // Search functionality
+            document.getElementById('searchInput').addEventListener('input', (e) => {
+                searchTerm = e.target.value.toLowerCase();
+                renderAddons();
+            });
+
+            // Refresh button
+            document.getElementById('refreshBtn').addEventListener('click', async () => {
+                document.getElementById('refreshBtn').querySelector('i').classList.add('animate-spin');
+                await loadAddonsData();
+                document.getElementById('refreshBtn').querySelector('i').classList.remove('animate-spin');
+            });
+        }
+
+        function toggleVersionFilters() {
+            const msfsFilter = document.getElementById('msfsVersionFilter');
+            const xplaneFilter = document.getElementById('xplaneVersionFilter');
+            
+            if (currentSim === 'msfs') {
+                msfsFilter.classList.remove('hidden');
+                xplaneFilter.classList.add('hidden');
+                currentXPlaneVersion = 'all';
+            } else if (currentSim === 'xplane') {
+                msfsFilter.classList.add('hidden');
+                xplaneFilter.classList.remove('hidden');
+                currentMsfsVersion = 'all';
+            } else {
+                msfsFilter.classList.add('hidden');
+                xplaneFilter.classList.add('hidden');
+                currentMsfsVersion = 'all';
+                currentXPlaneVersion = 'all';
+            }
+        }
+
+        function updateActiveTab(activeTab) {
+            document.querySelectorAll('.sim-tab').forEach(tab => {
+                tab.classList.remove('active', 'border-primary-600', 'text-primary-600');
+                tab.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'dark:text-gray-400', 'dark:hover:text-gray-200');
+                
+                const badge = tab.querySelector('span[id]');
+                if (badge) {
+                    badge.classList.remove('bg-primary-600');
+                    badge.classList.add('bg-gray-400');
+                }
+            });
+            
+            activeTab.classList.add('active', 'border-primary-600', 'text-primary-600');
+            activeTab.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'dark:text-gray-400', 'dark:hover:text-gray-200');
+            
+            const activeBadge = activeTab.querySelector('span[id]');
+            if (activeBadge) {
+                activeBadge.classList.add('bg-primary-600');
+                activeBadge.classList.remove('bg-gray-400');
+            }
+        }
+
+        function updateActiveFilter(activeFilter) {
+            document.querySelectorAll('.category-filter').forEach(filter => {
+                filter.classList.remove('active', 'bg-primary-600', 'text-white');
+                filter.classList.add('bg-gray-100/80', 'dark:bg-gray-700/80', 'text-gray-700', 'dark:text-gray-300');
+            });
+            
+            activeFilter.classList.add('active', 'bg-primary-600', 'text-white');
+            activeFilter.classList.remove('bg-gray-100/80', 'dark:bg-gray-700/80', 'text-gray-700', 'dark:text-gray-300');
+        }
+
+        function updateActiveMsfsVersionFilter(activeFilter) {
+            document.querySelectorAll('.msfs-version-filter').forEach(filter => {
+                filter.classList.remove('active', 'bg-blue-600', 'text-white');
+                filter.classList.add('bg-gray-100', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+            });
+            
+            activeFilter.classList.add('active', 'bg-blue-600', 'text-white');
+            activeFilter.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+        }
+
+        function updateActiveXPlaneVersionFilter(activeFilter) {
+            document.querySelectorAll('.xplane-version-filter').forEach(filter => {
+                filter.classList.remove('active', 'bg-blue-600', 'text-white');
+                filter.classList.add('bg-gray-100', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+            });
+            
+            activeFilter.classList.add('active', 'bg-blue-600', 'text-white');
+            activeFilter.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+        }
+
+        function renderAddons() {
+            const grid = document.getElementById('addonsGrid');
+            const noResults = document.getElementById('noResults');
+            
+            let addonsToShow = [];
+            
+            // Get addons for current simulator and category
+            if (addonsData[currentSim]) {
+                if (currentCategory === 'all') {
+                    Object.values(addonsData[currentSim]).forEach(categoryAddons => {
+                        addonsToShow = addonsToShow.concat(categoryAddons);
+                    });
+                } else {
+                    addonsToShow = addonsData[currentSim][currentCategory] || [];
+                }
+            }
+
+            // Filter by version
+            if (currentSim === 'msfs' && currentMsfsVersion !== 'all') {
+                addonsToShow = addonsToShow.filter(addon => {
+                    if (!addon.msfsVersion) return false;
+                    const supportedVersions = addon.msfsVersion.toString().split(',').map(v => v.trim());
+                    return supportedVersions.includes(currentMsfsVersion);
+                });
+            }
+
+            if (currentSim === 'xplane' && currentXPlaneVersion !== 'all') {
+                addonsToShow = addonsToShow.filter(addon => {
+                    if (!addon.xplaneVersion) return false;
+                    const supportedVersions = addon.xplaneVersion.toString().split(',').map(v => v.trim());
+                    return supportedVersions.includes(currentXPlaneVersion);
+                });
+            }
+
+            // Filter by search term
+            if (searchTerm) {
+                addonsToShow = addonsToShow.filter(addon => 
+                    addon.name.toLowerCase().includes(searchTerm) ||
+                    addon.description.toLowerCase().includes(searchTerm) ||
+                    addon.author.toLowerCase().includes(searchTerm)
+                );
+            }
+
+            if (addonsToShow.length === 0) {
+                grid.classList.add('hidden');
+                noResults.classList.remove('hidden');
+                return;
+            }
+
+            grid.classList.remove('hidden');
+            noResults.classList.add('hidden');
+
+            grid.innerHTML = addonsToShow.map(addon => createAddonCard(addon)).join('');
+        }
+
+        function getMsfsVersionBadge(msfsVersion) {
+            if (!msfsVersion) return '';
+            
+            const versions = msfsVersion.toString().split(',').map(v => v.trim());
+            
+            if (versions.length === 1) {
+                const version = versions[0];
+                if (version === '2020') {
+                    return '<span class="px-2 py-1 bg-blue-600 text-white text-xs rounded-full font-medium">MSFS2020</span>';
+                } else if (version === '2024') {
+                    return '<span class="px-2 py-1 bg-emerald-600 text-white text-xs rounded-full font-medium">MSFS2024</span>';
+                }
+            } else if (versions.includes('2020') && versions.includes('2024')) {
+                return '<span class="px-2 py-1 bg-purple-600 text-white text-xs rounded-full font-medium">MSFS2020+2024</span>';
+            }
+            
+            return '';
+        }
+
+        function getXPlaneVersionBadge(xplaneVersion) {
+            if (!xplaneVersion) return '';
+            
+            const versions = xplaneVersion.toString().split(',').map(v => v.trim());
+            
+            if (versions.length === 1) {
+                const version = versions[0];
+                if (version === '11') {
+                    return '<span class="px-2 py-1 bg-blue-500 text-white text-xs rounded-full font-medium">XP11</span>';
+                } else if (version === '12') {
+                    return '<span class="px-2 py-1 bg-green-500 text-white text-xs rounded-full font-medium">XP12</span>';
+                }
+            } else if (versions.includes('11') && versions.includes('12')) {
+                return '<span class="px-2 py-1 bg-purple-500 text-white text-xs rounded-full font-medium">XP11+12</span>';
+            }
+            
+            return '';
+        }
+
+        function createAddonCard(addon) {
+            const latestVersion = addon.versions.find(v => v.latest) || addon.versions[0];
+            const versionCount = addon.versions.length;
+            const msfsVersionBadge = currentSim === 'msfs' ? getMsfsVersionBadge(addon.msfsVersion) : '';
+            const xplaneVersionBadge = currentSim === 'xplane' ? getXPlaneVersionBadge(addon.xplaneVersion) : '';
+            const isOwner = currentUser && currentUser.role === 'owner';
+            
+            return `
+                <div class="addon-card glass-effect rounded-2xl shadow-soft-lg border border-gray-150 dark:border-gray-800 overflow-hidden animate-scaleIn">
+                    <div class="relative group">
+                        ${addon.thumbnail ? `
+                            <img src="${addon.thumbnail}" alt="${addon.name}" class="w-full h-52 object-cover transition-transform duration-500 group-hover:scale-105">
+                        ` : `
+                            <div class="w-full h-52 bg-gradient-to-br from-primary-500 via-primary-600 to-primary-700 flex items-center justify-center transition-all duration-500 group-hover:from-primary-600 group-hover:via-primary-700 group-hover:to-primary-800">
+                                <i class="fas fa-plane text-white text-5xl opacity-90"></i>
+                            </div>
+                        `}
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        
+                        <!-- Top badges -->
+                        <div class="absolute top-4 right-4 flex flex-col space-y-2 items-end">
+                            <span class="px-3 py-1.5 bg-gray-900/80 backdrop-blur-sm text-white text-sm rounded-full font-medium">
+                                ${latestVersion.version}
+                            </span>
+                            ${msfsVersionBadge ? `<div class="backdrop-blur-sm">${msfsVersionBadge}</div>` : ''}
+                            ${xplaneVersionBadge ? `<div class="backdrop-blur-sm">${xplaneVersionBadge}</div>` : ''}
+                        </div>
+                        
+                        ${addon.featured ? `
+                            <div class="absolute top-4 left-4">
+                                <span class="px-3 py-1.5 bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 text-sm rounded-full flex items-center font-semibold shadow-soft backdrop-blur-sm">
+                                    <i class="fas fa-star mr-1.5"></i>Featured
+                                </span>
+                            </div>
+                        ` : ''}
+
+                        ${isOwner ? `
+                            <div class="absolute top-4 left-4 ${addon.featured ? 'mt-12' : ''} opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                <div class="flex space-x-2">
+                                    <button onclick="showAddonModal('edit', ${JSON.stringify(addon).replace(/"/g, '&quot;')})" class="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-soft backdrop-blur-sm transition-colors" title="Edit Addon">
+                                        <i class="fas fa-edit text-sm"></i>
+                                    </button>
+                                    <button onclick="showDeleteModal('${addon.id || addon._id}')" class="p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg shadow-soft backdrop-blur-sm transition-colors" title="Delete Addon">
+                                        <i class="fas fa-trash text-sm"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                    
+                    <div class="p-6 space-y-4">
+                        <div class="space-y-2">
+                            <div class="flex items-start justify-between">
+                                <h3 class="font-bold text-xl text-gray-900 dark:text-gray-100 leading-tight">${addon.name}</h3>
+                                ${addon.rating ? `
+                                    <div class="flex items-center space-x-1 ml-3">
+                                        <div class="flex text-yellow-400">
+                                            ${'★'.repeat(Math.floor(addon.rating))}${'☆'.repeat(5 - Math.floor(addon.rating))}
+                                        </div>
+                                        <span class="text-sm text-gray-500 dark:text-gray-400 font-medium">${addon.rating}</span>
+                                    </div>
+                                ` : ''}
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div class="text-sm text-primary-600 dark:text-primary-400 font-medium">by ${addon.author}</div>
+                                ${currentSim === 'msfs' && addon.msfsVersion ? `
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                                        Compatible with MSFS ${addon.msfsVersion.toString().replace(',', ' & ')}
+                                    </div>
+                                ` : ''}
+                                ${currentSim === 'xplane' && addon.xplaneVersion ? `
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                                        Compatible with X-Plane ${addon.xplaneVersion.toString().replace(',', ' & ')}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                        
+                        <p class="text-gray-600 dark:text-gray-400 text-sm leading-relaxed description-truncated">${addon.description}</p>
+                        
+                        <div class="flex space-x-2 pt-2">
+                            <button onclick="showAddonDetailModal('${addon.id || addon._id}')" class="px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-all duration-300 text-xs font-medium">
+                                <i class="fas fa-info-circle mr-1"></i>Details
+                            </button>
+                            ${versionCount > 1 ? `
+                                <button onclick="showVersionModal('${addon.id || addon._id}')" class="flex-1 px-3 py-2 border border-primary-300 dark:border-primary-600 text-primary-700 dark:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-all duration-300 text-xs font-medium">
+                                    <i class="fas fa-history mr-1"></i>Versions (${versionCount})
+                                </button>
+                            ` : ''}
+                            <button onclick="downloadAddon('${addon.id || addon._id}', '${latestVersion.version}')" class="flex-1 px-3 py-2 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white rounded-lg transition-all duration-300 text-xs font-semibold shadow-soft hover:shadow-soft-lg transform hover:-translate-y-0.5">
+                                <i class="fas fa-download mr-1"></i>Download
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function showVersionModal(addonId) {
+            const addon = findAddonById(addonId);
+            if (!addon) return;
+            
+            // Create version modal dynamically
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            modal.innerHTML = `
+                <div class="glass-effect rounded-2xl shadow-soft-xl max-w-lg w-full mx-4 max-h-[80vh] overflow-hidden border border-gray-150 dark:border-gray-800">
+                    <div class="p-6 border-b border-gray-150 dark:border-gray-800">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-semibold">Select Version</h3>
+                            <button onclick="this.closest('.fixed').remove()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                                <i class="fas fa-times text-xl"></i>
+                            </button>
+                        </div>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">${addon.name}</p>
+                    </div>
+                    <div class="p-6 version-dropdown scrollable-content">
+                        ${addon.versions.map((version, index) => `
+                            <div class="border border-gray-200 dark:border-gray-600 rounded-lg mb-3 overflow-hidden">
+                                <div class="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                    <div class="flex-1">
+                                        <div class="flex items-center space-x-3">
+                                            <span class="font-medium">${version.version}</span>
+                                            ${version.latest ? '<span class="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs rounded-full">Latest</span>' : ''}
+                                        </div>
+                                        <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                            ${new Date(version.date).toLocaleDateString()} • ${version.size || 'N/A'}
+                                        </div>
+                                        ${version.changelog ? `
+                                            <button onclick="toggleChangelog('changelog-${index}')" class="flex items-center space-x-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 mt-2 transition-colors">
+                                                <i class="fas fa-chevron-down changelog-icon"></i>
+                                                <span>View Changelog</span>
+                                            </button>
+                                            <div id="changelog-${index}" class="changelog-collapsed overflow-hidden">
+                                                <div class="text-xs text-gray-600 dark:text-gray-400 mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded border-l-4 border-blue-500">
+                                                    ${version.changelog}
+                                                </div>
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                    <button onclick="downloadAddon('${addonId}', '${version.version}'); this.closest('.fixed').remove()" class="ml-4 px-3 py-1 bg-primary-600 hover:bg-primary-700 text-white rounded text-sm transition-colors">
+                                        Download
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        function showAddonDetailModal(addonId) {
+            const addon = findAddonById(addonId);
+            if (!addon) return;
+            
+            const latestVersion = addon.versions.find(v => v.latest) || addon.versions[0];
+            const msfsVersionBadge = addon.simulator === 'msfs' ? getMsfsVersionBadge(addon.msfsVersion) : '';
+            const xplaneVersionBadge = addon.simulator === 'xplane' ? getXPlaneVersionBadge(addon.xplaneVersion) : '';
+            const isOwner = currentUser && currentUser.role === 'owner';
+            
+            // Create detailed modal
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+            modal.innerHTML = `
+                <div class="glass-effect rounded-2xl shadow-soft-xl max-w-4xl w-full max-h-[90vh] overflow-hidden border border-gray-150 dark:border-gray-800 flex flex-col">
+                    <div class="flex flex-col lg:flex-row flex-1 min-h-0">
+                        <!-- Image Section -->
+                        <div class="lg:w-1/2 h-64 lg:h-auto relative">
+                            ${addon.thumbnail ? `
+                                <img src="${addon.thumbnail}" alt="${addon.name}" class="w-full h-full object-cover">
+                            ` : `
+                                <div class="w-full h-full bg-gradient-to-br from-primary-500 via-primary-600 to-primary-700 flex items-center justify-center">
+                                    <i class="fas fa-plane text-white text-6xl opacity-90"></i>
+                                </div>
+                            `}
+                            
+                            <!-- Badges on image -->
+                            <div class="absolute top-4 right-4 flex flex-col space-y-2 items-end">
+                                <span class="px-3 py-1.5 bg-gray-900/80 backdrop-blur-sm text-white text-sm rounded-full font-medium">
+                                    v${latestVersion.version}
+                                </span>
+                                ${msfsVersionBadge ? `<div class="backdrop-blur-sm">${msfsVersionBadge}</div>` : ''}
+                                ${xplaneVersionBadge ? `<div class="backdrop-blur-sm">${xplaneVersionBadge}</div>` : ''}
+                            </div>
+                            
+                            ${addon.featured ? `
+                                <div class="absolute top-4 left-4">
+                                    <span class="px-3 py-1.5 bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 text-sm rounded-full flex items-center font-semibold shadow-soft backdrop-blur-sm">
+                                        <i class="fas fa-star mr-1.5"></i>Featured
+                                    </span>
+                                </div>
+                            ` : ''}
+                        </div>
+                        
+                        <!-- Content Section -->
+                        <div class="lg:w-1/2 flex flex-col min-h-0">
+                            <!-- Header -->
+                            <div class="p-6 border-b border-gray-150 dark:border-gray-800 flex-shrink-0">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-start justify-between mb-2">
+                                            <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 leading-tight truncate">${addon.name}</h2>
+                                            <button onclick="this.closest('.fixed').remove()" class="ml-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors flex-shrink-0">
+                                                <i class="fas fa-times text-xl"></i>
+                                            </button>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <p class="text-primary-600 dark:text-primary-400 font-medium truncate">${addon.author}</p>
+                                            ${addon.rating ? `
+                                                <div class="flex items-center space-x-1 flex-shrink-0">
+                                                    <div class="flex text-yellow-400 text-lg">
+                                                        ${'★'.repeat(Math.floor(addon.rating))}${'☆'.repeat(5 - Math.floor(addon.rating))}
+                                                    </div>
+                                                    <span class="text-sm text-gray-500 dark:text-gray-400 font-medium">${addon.rating}</span>
+                                                </div>
+                                            ` : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Scrollable Content -->
+                            <div class="flex-1 overflow-y-auto p-6 space-y-6 scrollable-content min-h-0">
+                                <!-- Description -->
+                                <div>
+                                    <h3 class="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">Description</h3>
+                                    <p class="text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-line">${addon.description}</p>
+                                </div>
+                                
+                                <!-- Details -->
+                                <div>
+                                    <h3 class="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">Details</h3>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-500 dark:text-gray-400">Simulator:</span>
+                                            <span class="font-medium">${addon.simulator === 'msfs' ? 'Microsoft Flight Simulator' : 'X-Plane'}</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-500 dark:text-gray-400">Category:</span>
+                                            <span class="font-medium capitalize">${addon.category === 'planes' ? 'Aircraft' : addon.category === 'scenery' ? 'Scenery' : 'Utilities'}</span>
+                                        </div>
+                                        ${addon.simulator === 'msfs' && addon.msfsVersion ? `
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-500 dark:text-gray-400">MSFS Version:</span>
+                                                <span class="font-medium">${addon.msfsVersion.toString().replace(',', ' & ')}</span>
+                                            </div>
+                                        ` : ''}
+                                        ${addon.simulator === 'xplane' && addon.xplaneVersion ? `
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-500 dark:text-gray-400">X-Plane Version:</span>
+                                                <span class="font-medium">${addon.xplaneVersion.toString().replace(',', ' & ')}</span>
+                                            </div>
+                                        ` : ''}
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-500 dark:text-gray-400">Latest Version:</span>
+                                            <span class="font-medium">${latestVersion.version}</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-500 dark:text-gray-400">Total Versions:</span>
+                                            <span class="font-medium">${addon.versions.length}</span>
+                                        </div>
+                                        ${latestVersion.size ? `
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-500 dark:text-gray-400">File Size:</span>
+                                                <span class="font-medium">${latestVersion.size}</span>
+                                            </div>
+                                        ` : ''}
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-500 dark:text-gray-400">Last Updated:</span>
+                                            <span class="font-medium">${new Date(latestVersion.date).toLocaleDateString()}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Latest Version Changelog -->
+                                ${latestVersion.changelog ? `
+                                    <div>
+                                        <h3 class="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">Latest Version Changelog</h3>
+                                        <div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border-l-4 border-blue-500">
+                                            <p class="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-line">${latestVersion.changelog}</p>
+                                        </div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                            
+                            <!-- Actions -->
+                            <div class="p-6 border-t border-gray-150 dark:border-gray-800 space-y-3 flex-shrink-0">
+                                ${isOwner ? `
+                                    <div class="flex space-x-3 mb-3">
+                                        <button onclick="showAddonModal('edit', ${JSON.stringify(addon).replace(/"/g, '&quot;')}); this.closest('.fixed').remove();" class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium">
+                                            <i class="fas fa-edit mr-2"></i>Edit Addon
+                                        </button>
+                                        <button onclick="showDeleteModal('${addon.id || addon._id}'); this.closest('.fixed').remove();" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm font-medium">
+                                            <i class="fas fa-trash mr-2"></i>Delete
+                                        </button>
+                                    </div>
+                                ` : ''}
+                                
+                                <div class="flex space-x-3">
+                                    ${addon.versions.length > 1 ? `
+                                        <button onclick="showVersionModal('${addon.id || addon._id}'); this.closest('.fixed').remove();" class="flex-1 px-4 py-3 border-2 border-primary-600 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-all duration-300 font-semibold">
+                                            <i class="fas fa-history mr-2"></i>All Versions (${addon.versions.length})
+                                        </button>
+                                    ` : ''}
+                                    <button onclick="downloadAddon('${addon.id || addon._id}', '${latestVersion.version}'); this.closest('.fixed').remove();" class="flex-1 px-4 py-3 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white rounded-lg transition-all duration-300 font-semibold shadow-soft hover:shadow-soft-lg transform hover:-translate-y-0.5">
+                                        <i class="fas fa-download mr-2"></i>Download Latest
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        function toggleChangelog(changelogId) {
+            const changelog = document.getElementById(changelogId);
+            const icon = changelog.previousElementSibling.querySelector('.changelog-icon');
+            
+            if (changelog.classList.contains('changelog-collapsed')) {
+                changelog.classList.remove('changelog-collapsed');
+                changelog.classList.add('changelog-expanded');
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-up');
+                changelog.previousElementSibling.querySelector('span').textContent = 'Hide Changelog';
+            } else {
+                changelog.classList.remove('changelog-expanded');
+                changelog.classList.add('changelog-collapsed');
+                icon.classList.remove('fa-chevron-up');
+                icon.classList.add('fa-chevron-down');
+                changelog.previousElementSibling.querySelector('span').textContent = 'View Changelog';
+            }
+        }
+
+        function downloadAddon(addonId, version) {
+            const addon = findAddonById(addonId);
+            if (!addon) return;
+            
+            const versionData = addon.versions.find(v => v.version === version) || addon.versions[0];
+            if (versionData && versionData.downloadUrl) {
+                window.open(versionData.downloadUrl, '_blank');
+                showAlert(`Download started for ${addon.name} v${version}`);
+            } else {
+                showAlert('Download URL not available');
+            }
+        }
+
+        function findAddonById(addonId) {
+            for (const sim in addonsData) {
+                for (const category in addonsData[sim]) {
+                    const addon = addonsData[sim][category].find(a => a.id === addonId || a._id === addonId);
+                    if (addon) return addon;
+                }
+            }
+            return null;
+        }
+
+        function showAlert(message) {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            modal.innerHTML = `
+                <div class="glass-effect rounded-2xl shadow-soft-xl max-w-sm w-full mx-4 border border-gray-150 dark:border-gray-800">
+                    <div class="p-6 text-center">
+                        <div class="w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-check text-green-600 dark:text-green-400 text-2xl"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold mb-2">Success</h3>
+                        <p class="text-gray-600 dark:text-gray-400 text-sm mb-4">${message}</p>
+                        <button onclick="this.closest('.fixed').remove()" class="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors">
+                            OK
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        // Initialize version filter visibility
+        toggleVersionFilters();
+    </script>
+</body>
+</html>
